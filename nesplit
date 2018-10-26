@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+ROM=$1
+
+if [ -z "$ROM" ] || [ ! -e $ROM ]; then
+  echo "Usage: $0 romfile.nes"
+  exit 1
+fi
+
+INES="$(head -c16 "$ROM" | xxd -pg0)"
+
+PRG_SIZE=$(bc <<< "ibase=16; 4000 * $(cut -c9,10 <<< $INES)")
+CHR_SIZE=$(bc <<< 'ibase=16; 2000 * '"$(cut -c11,12 <<< $INES)")
+
+echo PRG: $PRG_SIZE bytes
+echo CHR: $CHR_SIZE bytes
+
+OUT=$(sed s/\\.nes$// <<< $ROM)
+PRG=$OUT.prg
+CHR=$OUT.chr
+
+tail -c+17 "$ROM" | head -c$PRG_SIZE > "$PRG"
+tail -c+$(bc <<< "17 + $PRG_SIZE") "$ROM" | head -c$CHR_SIZE > "$CHR"
